@@ -62,7 +62,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 
-
 class MainActivity : ComponentActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -163,6 +162,7 @@ class ReorgCheckService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
 		val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
         val reorg_check_interval = intent?.getIntExtra("reorg_check_interval", 5) ?: 5
         val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
@@ -174,7 +174,7 @@ class ReorgCheckService : Service() {
 			val server_status = getJsonValue(get_info_json ?: "fail", "result.status")
 
 			if ( server_status != "OK" ) {
-                Log.d("ReorgCheckService", "Failed to connect to server exiting service")
+				Log.d("ReorgCheckService", "Failed to connect to server exiting service")
         		sendNotification("Failed to connect to server",1001)
 				stopForeground(true)
 				stopSelf()
@@ -239,7 +239,6 @@ class ReorgCheckService : Service() {
 
     private fun sendForegroundNotification(content: String): Notification {
         return NotificationCompat.Builder(this, channel_id)
-            //.setContentTitle("Monero Watchman")
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_launcher_foreground) 
             .setOngoing(true)
@@ -248,10 +247,9 @@ class ReorgCheckService : Service() {
 
 	private fun sendNotification(content: String, notification_id: Int) {
 	    val notification = NotificationCompat.Builder(this, channel_id)
-	        //.setContentTitle("Monero Watchman")
 	        .setContentText(content)
 	        .setSmallIcon(R.drawable.ic_launcher_foreground)
-	        .setAutoCancel(true) // dismiss when tapped
+	        .setAutoCancel(true) 
 	        .build()
 	
 	    val manager = getSystemService(NotificationManager::class.java)
@@ -306,7 +304,6 @@ fun checkForReorg(reorg_threshold: Int, old_block_data : MutableList<BlockDataEn
 		return null
 	}
 }
-
 
 fun sendMoneroRpcRequest(node_url: String, method: String, json_params: String = "{}"): String? {
     var response: String? = null
