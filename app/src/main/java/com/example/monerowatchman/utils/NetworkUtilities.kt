@@ -20,40 +20,56 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package com.example.monerowatchman
 
 // Dependencies 
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.URI
+import java.util.concurrent.TimeUnit
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 
-fun sendMoneroRpcRequest(node_url: String, method: String, json_params: String = "{}"): String? {
+fun sendMoneroRpcRequest(use_proxy: Boolean, node_url: String, method: String, json_params: String = "{}"): String? {
+
+    val node_url_json_rpc = "$node_url/json_rpc"
     var response: String? = null
+	var client: OkHttpClient? = null
 
-    try {
-        val url = URL("$node_url/json_rpc")
-        val connection = url.openConnection() as HttpURLConnection
+	val request_body = """
+	    {
+	        "jsonrpc": "2.0",
+	        "id": "0",
+	        "method": "$method",
+	        "params": $json_params
+	    }
+	""".trimIndent()
 
-        connection.requestMethod = "POST"
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.doOutput = true
-        connection.connectTimeout = 5000
+	try {
+		if (use_proxy) {
+			val proxy = "127.0.0.1:9050"
+    	    val proxy_uri = URI(proxy)
+    	    val proxy_host = proxy_uri.host
+    	    val proxy_port = proxy_uri.port
+			
+        	val proxy_connection = Proxy(Proxy.Type.SOCKS, InetSocketAddress(proxy_host, proxy_port))
 
-        val requestBody = """
-            {
-                "jsonrpc": "2.0",
-                "id": "0",
-                "method": "$method",
-                "params": $json_params
-            }
-        """.trimIndent()
+        	client = OkHttpClient.Builder().proxy(proxy_connection).build()
 
-        OutputStreamWriter(connection.outputStream).use { writer ->
-            writer.write(requestBody)
-            writer.flush()
-        }
+		} else {
+			client = OkHttpClient.Builder().connectTimeout(3,TimeUnit.SECONDS).build()
+		} 
+	
+	    val request = Request.Builder().url(node_url_json_rpc).post(request_body.toRequestBody("application/json".toMediaTypeOrNull())).build()
+	
+	    client.newCall(request).execute().use { response ->
+	        if (!response.isSuccessful) {
+				// Maybe add a log here
+				return null
+	        }
+    	    return response.body?.string()
+		}
 
-        response = connection.inputStream.bufferedReader().use { it.readText() }
-    } catch (e: Exception) {
-        e.printStackTrace()
+	} catch (e: Exception) {
+    	e.printStackTrace()
+		return null
     }
-
-    return response
 }

@@ -58,12 +58,13 @@ class ReorgCheckService : Service() {
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
 			val block_window = reorg_threshold + 10
     		var reorg_message: String? = null
+			val use_proxy = false
 
 			var next_reorg_check_height = -1
 			var reorg_check_height = -1
 
 			// TODO replace with some other way to communitcate that you're not connected to the server 
-			var get_info_json = sendMoneroRpcRequest(node_url,"get_info")
+			var get_info_json = sendMoneroRpcRequest(use_proxy,node_url,"get_info")
 			val server_status = getJsonValue(get_info_json ?: "fail", "result.status")
 
 			if ( server_status != "OK" ) {
@@ -86,7 +87,7 @@ class ReorgCheckService : Service() {
 					val reorg_check_start_block_height = reorg_check_height - block_window
 
 					val comparison_get_block_headers_range_params = """{"start_height": $reorg_check_start_block_height, "end_height": $reorg_check_end_block_height}"""
-					val comparison_get_block_headers_range_json = sendMoneroRpcRequest(node_url,"get_block_headers_range",comparison_get_block_headers_range_params)
+					val comparison_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,node_url,"get_block_headers_range",comparison_get_block_headers_range_params)
 					comparison_block_data = parseBlockHeaders("$comparison_get_block_headers_range_json")
 
 	                Log.d("ReorgCheckService", "node_url : $node_url")
@@ -106,7 +107,7 @@ class ReorgCheckService : Service() {
 					}
 				}
 				
-				val get_info_json = sendMoneroRpcRequest(node_url,"get_info")
+				val get_info_json = sendMoneroRpcRequest(use_proxy,node_url,"get_info")
 
 				if (getJsonValue(get_info_json ?: "", "result.status") == "OK") {
 
@@ -117,7 +118,7 @@ class ReorgCheckService : Service() {
 						val next_reorg_check_start_block_height = next_reorg_check_height - block_window
 						
 						val baseline_get_block_headers_range_params = """{"start_height": $next_reorg_check_start_block_height, "end_height": $next_reorg_check_end_block_height}"""
-						val baseline_get_block_headers_range_json = sendMoneroRpcRequest(node_url,"get_block_headers_range",baseline_get_block_headers_range_params)
+						val baseline_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,node_url,"get_block_headers_range",baseline_get_block_headers_range_params)
 						
 						baseline_block_data = parseBlockHeaders("$baseline_get_block_headers_range_json")
 	            		Log.d("ReorgCheckService", "Retrieved baseline_block_data for next loop")

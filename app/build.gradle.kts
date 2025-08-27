@@ -56,7 +56,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-	// For WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.7.0")
+	// For proxy support
+	implementation("com.squareup.okhttp3:okhttp:4.11.0")
 
 }
