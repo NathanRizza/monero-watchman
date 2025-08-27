@@ -34,31 +34,35 @@ import kotlinx.coroutines.*
 class ReorgCheckService : Service() {
 
     private val channel_id = "ReorgCheckServiceChannel"
-	private val block_window = 10
+	private val block_window = 20
     private var job: Job? = null
     private var reorg_message: String? = null
 	
-	// block_data[0] will always be the newest block in their respective lists
-	private var old_block_data = mutableListOf<BlockDataEntry>()
-	private var new_block_data = mutableListOf<BlockDataEntry>()
+	private var baseline_block_data = mutableListOf<BlockDataEntry>()
+	private var comparison_block_data = mutableListOf<BlockDataEntry>()
 
     override fun onCreate() {
+		
 		super.onCreate()
 		createNotificationChannel()
-
 		val notification = sendForegroundNotification("Monitoring for chain reorganizations")
 		startForeground(1, notification)
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
-		val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
-        val reorg_check_interval = intent?.getIntExtra("reorg_check_interval", 5) ?: 5
-        val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
-
         job?.cancel()
         job = CoroutineScope(Dispatchers.IO).launch {
 
+			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
+        	val reorg_check_interval = intent?.getIntExtra("reorg_check_interval", 5) ?: 5
+        	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
+
+			var next_reorg_check_height = -1
+			var reorg_check_height = -1
+
+			// TODO replace with some other way to communitcate that you're not connected to the server 
 			var get_info_json = sendMoneroRpcRequest(node_url,"get_info")
 			val server_status = getJsonValue(get_info_json ?: "fail", "result.status")
 
@@ -70,44 +74,58 @@ class ReorgCheckService : Service() {
 			} 
             
 			while (isActive) {
-				// Loops every reorg_check_interval
-				
-				//TESTING
-				//testReorgCheck()
 
-				var get_info_json = sendMoneroRpcRequest(node_url,"get_info")
-				val block_height = get_info_json?.let { json -> getJsonValue(json, "result.height")?.toInt()} ?: -1
-				val end_block_height = block_height - 1 
-				var start_block_height = end_block_height - block_window
-				
-				val get_block_headers_range_params = """{"start_height": $start_block_height, "end_height": $end_block_height}"""
-				var get_block_headers_range_json = sendMoneroRpcRequest(node_url,"get_block_headers_range",get_block_headers_range_params )
-				
-				new_block_data = parseBlockHeaders("$get_block_headers_range_json")
-				
-				// Logging
-                Log.d("ReorgCheckService", "node_url : $node_url")
-                Log.d("ReorgCheckService", "block_height : $block_height")
-                Log.d("ReorgCheckService", "reorg_threshold : $reorg_threshold")
-                Log.d("ReorgCheckService", new_block_data.toString())
-				
+	            Log.d("ReorgCheckService", "ReorgCheckServiceLoop")
 
-				if (old_block_data.isEmpty()) {
-					Log.d("ReorgCheckService", "old_block_data is empty not running Reorg check yet")
-				} else if (new_block_data.isEmpty())  {
-					Log.d("ReorgCheckService", "new_block_data is empty, maybe server is down")
-				} else {
-					Log.d("ReorgCheckService", "Checking for reorgs")
-					reorg_message = checkForReorg(reorg_threshold, old_block_data, new_block_data)
+				reorg_check_height = next_reorg_check_height
+				
+				//TODO add some additonal checks like if the old data has values in it
+				if (reorg_check_height != -1){
+
+					val reorg_check_end_block_height = reorg_check_height - 1 
+					val reorg_check_start_block_height = reorg_check_height - block_window
+
+					val comparison_get_block_headers_range_params = """{"start_height": $reorg_check_start_block_height, "end_height": $reorg_check_end_block_height}"""
+					val comparison_get_block_headers_range_json = sendMoneroRpcRequest(node_url,"get_block_headers_range",comparison_get_block_headers_range_params)
+					comparison_block_data = parseBlockHeaders("$comparison_get_block_headers_range_json")
+
+	                Log.d("ReorgCheckService", "node_url : $node_url")
+	                Log.d("ReorgCheckService", "reorg_check_height : $reorg_check_height")
+	                Log.d("ReorgCheckService", "reorg_threshold : $reorg_threshold")
+	                Log.d("ReorgCheckService", "baseline_block_data: $baseline_block_data")
+	                Log.d("ReorgCheckService", "comparison_block_data: $comparison_block_data")
+
+					//Check for a reorg
+					val reorg_message = checkForReorg(reorg_threshold,baseline_block_data,comparison_block_data)
 					if (reorg_message != null) {
 						Log.d("ReorgCheckService", "$reorg_message")
-        				sendNotification("$reorg_message",1002)
+		      			sendNotification("$reorg_message",1002)
 					} else {
 						Log.d("ReorgCheckService", "No reorg detected")
 					}
 				}
+				
+				val get_info_json = sendMoneroRpcRequest(node_url,"get_info")
 
-				old_block_data = new_block_data
+				if (getJsonValue(get_info_json ?: "", "result.status") == "OK") {
+
+					next_reorg_check_height = getJsonValue(get_info_json ?: "", "result.height")?.toIntOrNull() ?: -1
+					
+					if (next_reorg_check_height != -1) {
+						val next_reorg_check_end_block_height = next_reorg_check_height - 1 
+						val next_reorg_check_start_block_height = next_reorg_check_height - block_window
+						
+						val baseline_get_block_headers_range_params = """{"start_height": $next_reorg_check_start_block_height, "end_height": $next_reorg_check_end_block_height}"""
+						val baseline_get_block_headers_range_json = sendMoneroRpcRequest(node_url,"get_block_headers_range",baseline_get_block_headers_range_params)
+						
+						baseline_block_data = parseBlockHeaders("$baseline_get_block_headers_range_json")
+	            		Log.d("ReorgCheckService", "Retrieved baseline_block_data for next loop")
+					}else {
+	                	Log.d("ReorgCheckService", "Failed to get valid block height from server")
+					}
+				} else {
+	                Log.d("ReorgCheckService", "Failed to connect to server")
+				}
 
                 delay(reorg_check_interval * 60_000L)
             }
@@ -117,6 +135,29 @@ class ReorgCheckService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+	private fun checkForReorg(reorg_threshold: Int, baseline_block_data : MutableList<BlockDataEntry>, comparison_block_data : MutableList<BlockDataEntry>): String? {
+
+		var has_reorg = false
+		var reorg_length = 0
+		var fork_point = -1
+			
+		var	total_indices = baseline_block_data.indices
+
+		for (i in total_indices) {
+        	if (baseline_block_data[i].hash != comparison_block_data[i].hash) {
+				has_reorg = true
+				reorg_length++
+				fork_point = baseline_block_data[i].height
+			}
+		}
+
+		if ( has_reorg && reorg_length >= reorg_threshold ) {
+			return "Reorg Detected - Length: $reorg_length Fork Point: $fork_point"
+		} else {
+			return null
+		}
+	} 
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
