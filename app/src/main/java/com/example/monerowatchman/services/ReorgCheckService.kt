@@ -34,9 +34,7 @@ import kotlinx.coroutines.*
 class ReorgCheckService : Service() {
 
     private val channel_id = "ReorgCheckServiceChannel"
-	private val block_window = 20
     private var job: Job? = null
-    private var reorg_message: String? = null
 	
 	private var baseline_block_data = mutableListOf<BlockDataEntry>()
 	private var comparison_block_data = mutableListOf<BlockDataEntry>()
@@ -58,6 +56,8 @@ class ReorgCheckService : Service() {
 			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
         	val reorg_check_interval = intent?.getIntExtra("reorg_check_interval", 5) ?: 5
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
+			val block_window = reorg_threshold + 10
+    		var reorg_message: String? = null
 
 			var next_reorg_check_height = -1
 			var reorg_check_height = -1
@@ -92,6 +92,7 @@ class ReorgCheckService : Service() {
 	                Log.d("ReorgCheckService", "node_url : $node_url")
 	                Log.d("ReorgCheckService", "reorg_check_height : $reorg_check_height")
 	                Log.d("ReorgCheckService", "reorg_threshold : $reorg_threshold")
+	                Log.d("ReorgCheckService", "block_window : $block_window")
 	                Log.d("ReorgCheckService", "baseline_block_data: $baseline_block_data")
 	                Log.d("ReorgCheckService", "comparison_block_data: $comparison_block_data")
 
