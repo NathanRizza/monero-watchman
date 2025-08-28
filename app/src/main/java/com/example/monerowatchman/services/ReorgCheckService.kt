@@ -58,7 +58,7 @@ class ReorgCheckService : Service() {
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
 			val block_window = reorg_threshold + 10
     		var reorg_message: String? = null
-			val use_proxy = false
+			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
 
 			var next_reorg_check_height = -1
 			var reorg_check_height = -1

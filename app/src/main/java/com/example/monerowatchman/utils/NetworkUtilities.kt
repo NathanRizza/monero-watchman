@@ -46,20 +46,23 @@ fun sendMoneroRpcRequest(use_proxy: Boolean, node_url: String, method: String, j
 	try {
 		if (use_proxy) {
 			val proxy = "127.0.0.1:9050"
-    	    val proxy_uri = URI(proxy)
-    	    val proxy_host = proxy_uri.host
-    	    val proxy_port = proxy_uri.port
+    	    //val proxy_uri = URI(proxy)
+    	    //val proxy_host = proxy_uri.host
+    	    //val proxy_port = proxy_uri.port
+    	    val proxy_host = "127.0.0.1"
+    	    val proxy_port = 9050
 			
         	val proxy_connection = Proxy(Proxy.Type.SOCKS, InetSocketAddress(proxy_host, proxy_port))
 
         	client = OkHttpClient.Builder().proxy(proxy_connection).build()
+
 
 		} else {
 			client = OkHttpClient.Builder().connectTimeout(3,TimeUnit.SECONDS).build()
 		} 
 	
 	    val request = Request.Builder().url(node_url_json_rpc).post(request_body.toRequestBody("application/json".toMediaTypeOrNull())).build()
-	
+
 	    client.newCall(request).execute().use { response ->
 	        if (!response.isSuccessful) {
 				// Maybe add a log here
