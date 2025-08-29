@@ -81,7 +81,7 @@ class ReorgCheckService : Service() {
 				reorg_check_height = next_reorg_check_height
 				
 				//TODO add some additonal checks like if the old data has values in it
-				if (reorg_check_height != -1){
+				if (reorg_check_height != -1 && baseline_block_data.isNotEmpty()){
 
 					val reorg_check_end_block_height = reorg_check_height - 1 
 					val reorg_check_start_block_height = reorg_check_height - block_window
@@ -97,15 +97,22 @@ class ReorgCheckService : Service() {
 	                Log.d("ReorgCheckService", "baseline_block_data: $baseline_block_data")
 	                Log.d("ReorgCheckService", "comparison_block_data: $comparison_block_data")
 
-					//Check for a reorg
-					val reorg_message = checkForReorg(reorg_threshold,baseline_block_data,comparison_block_data)
-					if (reorg_message != null) {
-						Log.d("ReorgCheckService", "$reorg_message")
-		      			sendNotification("$reorg_message",1002)
+					if(comparison_block_data.isNotEmpty()) {
+						//Check for a reorg
+						val reorg_message = checkForReorg(reorg_threshold,baseline_block_data,comparison_block_data)
+						if (reorg_message != null) {
+							Log.d("ReorgCheckService", "$reorg_message")
+			      			sendNotification("$reorg_message",1002)
+						} else {
+							Log.d("ReorgCheckService", "No reorg detected")
+						}
 					} else {
-						Log.d("ReorgCheckService", "No reorg detected")
+							Log.d("ReorgCheckService", "Grabbing comparison_block_data_failed")
 					}
+				} else {
+							Log.d("ReorgCheckService", "baseline_block_data is empty")
 				}
+
 				
 				val get_info_json = sendMoneroRpcRequest(use_proxy,node_url,"get_info")
 
@@ -130,10 +137,13 @@ class ReorgCheckService : Service() {
 				}
 
                 delay(reorg_check_interval * 60_000L)
+                //delay(reorg_check_interval * 30_000L)
             }
         }
 
-        return START_STICKY
+        //sendNotification("Monerowatchmen closed unexpectedly",1001)
+        //return START_STICKY
+		return START_REDELIVER_INTENT
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
