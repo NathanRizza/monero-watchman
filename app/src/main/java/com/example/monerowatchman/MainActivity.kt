@@ -42,6 +42,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.monerowatchman.ui.theme.MoneroWatchmanTheme
 import androidx.compose.material3.Switch
+//batt op
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
 
 class MainActivity : ComponentActivity() {
 
@@ -50,6 +54,13 @@ class MainActivity : ComponentActivity() {
 		
 		// Requests notification permissions
 	    ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
+
+		// Reqest battery optimization exception
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+		    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+		    intent.data = Uri.parse("package:$packageName")
+		    startActivity(intent)
+		}
 
 		setContent {
 			MoneroWatchmanTheme {
@@ -85,7 +96,7 @@ class MainActivity : ComponentActivity() {
 						    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
 						)
 						
-						// Convert to Int when you need it:
+						// Convert to int because we can only get strings
 						reorg_threshold = reorgText.toIntOrNull() ?: 1
 
 					    Button(onClick = {
@@ -106,7 +117,7 @@ class MainActivity : ComponentActivity() {
 						Switch(checked = use_proxy,onCheckedChange = { use_proxy = it })
 				        Text(text = if (use_proxy) "Proxy ON" else "Proxy OFF")
 
-						//Text("Until further updates, after pressing run wait for the notification to pop up to confirm service is running.")
+						Text("Until further updates, after pressing run wait for the notification to pop up to confirm service is running.")
 					
 					}
 				}
@@ -115,14 +126,13 @@ class MainActivity : ComponentActivity() {
 	}
 
 	private fun startReorgCheckService(node_url: String, reorg_threshold: Int, reorg_check_interval: Int, use_proxy: Boolean) {
-		// Get the ReorgCheckService
+
 	    val intent = Intent(this, ReorgCheckService::class.java)
-		// Append values to intent that we need to pass to the service
+
 	    intent.putExtra("node_url", node_url)
-	    intent.putExtra("reorg_check_interval", reorg_check_interval)
 	    intent.putExtra("reorg_threshold", reorg_threshold)
 	    intent.putExtra("use_proxy", use_proxy)
-		// Start Service
+
 	    ContextCompat.startForegroundService(this, intent)
 	}
 }

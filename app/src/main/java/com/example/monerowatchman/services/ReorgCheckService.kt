@@ -33,7 +33,10 @@ import kotlinx.coroutines.*
 
 class ReorgCheckService : Service() {
 
-    private val channel_id = "ReorgCheckServiceChannel"
+    private val service_channel_id = "ReorgCheckServiceChannel"
+    private val service_channel_name = "Foreground Service Notification"
+    private val notification_channel_id = "ReorgCheckNotificationChannel"
+    private val notification_channel_name = "Reorg Notifications"
     private var job: Job? = null
 	
 	private var baseline_block_data = mutableListOf<BlockDataEntry>()
@@ -42,8 +45,9 @@ class ReorgCheckService : Service() {
     override fun onCreate() {
 		
 		super.onCreate()
-		createNotificationChannel()
-		val notification = sendForegroundNotification("Monitoring for chain reorganizations")
+		createNotificationChannel(service_channel_id,service_channel_name,NotificationManager.IMPORTANCE_LOW)
+		createNotificationChannel(notification_channel_id,notification_channel_name,NotificationManager.IMPORTANCE_DEFAULT)
+		val notification = sendForegroundNotification(service_channel_id,"Monitoring for chain reorganizations")
 		startForeground(1, notification)
 
     }
@@ -54,11 +58,11 @@ class ReorgCheckService : Service() {
         job = CoroutineScope(Dispatchers.IO).launch {
 
 			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
-        	val reorg_check_interval = intent?.getIntExtra("reorg_check_interval", 5) ?: 5
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
+			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
 			val block_window = reorg_threshold + 10
     		var reorg_message: String? = null
-			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
+        	val reorg_check_interval = 1
 
 			var next_reorg_check_height = -1
 			var reorg_check_height = -1
@@ -69,7 +73,7 @@ class ReorgCheckService : Service() {
 
 			if ( server_status != "OK" ) {
 				Log.d("ReorgCheckService", "Failed to connect to server exiting service")
-        		sendNotification("Failed to connect to server",1001)
+        		sendNotification(notification_channel_id,"Failed to connect to server",1001)
 				stopForeground(STOP_FOREGROUND_REMOVE)
 				stopSelf()
 			} 
@@ -102,7 +106,7 @@ class ReorgCheckService : Service() {
 						val reorg_message = checkForReorg(reorg_threshold,baseline_block_data,comparison_block_data)
 						if (reorg_message != null) {
 							Log.d("ReorgCheckService", "$reorg_message")
-			      			sendNotification("$reorg_message",1002)
+			      			sendNotification(notification_channel_id,"$reorg_message",1002)
 						} else {
 							Log.d("ReorgCheckService", "No reorg detected")
 						}
@@ -137,12 +141,9 @@ class ReorgCheckService : Service() {
 				}
 
                 delay(reorg_check_interval * 60_000L)
-                //delay(reorg_check_interval * 30_000L)
             }
         }
 
-        //sendNotification("Monerowatchmen closed unexpectedly",1001)
-        //return START_STICKY
 		return START_REDELIVER_INTENT
     }
 
@@ -171,15 +172,15 @@ class ReorgCheckService : Service() {
 		}
 	} 
 
-    private fun createNotificationChannel() {
+    private fun createNotificationChannel(channel_id: String, channel_name: String, importance: Int ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channel_id,"Reorg Check Service",NotificationManager.IMPORTANCE_LOW)
+            val channel = NotificationChannel(channel_id,channel_name,importance)
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
 
-    private fun sendForegroundNotification(content: String): Notification {
+    private fun sendForegroundNotification(channel_id: String,content: String): Notification {
         return NotificationCompat.Builder(this, channel_id)
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_launcher_foreground) 
@@ -187,7 +188,7 @@ class ReorgCheckService : Service() {
             .build()
     }
 
-	private fun sendNotification(content: String, notification_id: Int) {
+	private fun sendNotification(channel_id: String,content: String, notification_id: Int) {
 	    val notification = NotificationCompat.Builder(this, channel_id)
 	        .setContentText(content)
 	        .setSmallIcon(R.drawable.ic_launcher_foreground)
