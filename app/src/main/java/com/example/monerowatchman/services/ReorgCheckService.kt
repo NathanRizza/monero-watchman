@@ -159,9 +159,11 @@ class ReorgCheckService : Service() {
 
 		for (i in total_indices) {
         	if (baseline_block_data[i].hash != comparison_block_data[i].hash) {
+				if (!has_reorg) {	
+					fork_point = baseline_block_data[i].height
+				}
 				has_reorg = true
 				reorg_length++
-				fork_point = baseline_block_data[i].height
 			}
 		}
 

@@ -42,10 +42,18 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.monerowatchman.ui.theme.MoneroWatchmanTheme
 import androidx.compose.material3.Switch
-//batt op
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.HorizontalDivider
+//for fonts
+import androidx.compose.ui.text.TextStyle 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 class MainActivity : ComponentActivity() {
 
@@ -65,8 +73,11 @@ class MainActivity : ComponentActivity() {
 		setContent {
 			MoneroWatchmanTheme {
 				Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-					Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+					Column(modifier = Modifier.padding(innerPadding)) {
 						
+						val ew_modifier =  Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp)
+						val ns_modifier =  Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp)
+
 						val default_node_url = "https://moneronode.org:18081"
 						val default_reorg_threshold = 1
 						val default_reorg_check_interval = 1
@@ -77,48 +88,87 @@ class MainActivity : ComponentActivity() {
 						var reorg_check_interval = default_reorg_check_interval 
 						var use_proxy by remember { mutableStateOf(false) } 
 
+
+						// Title Section
+						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,verticalAlignment = Alignment.CenterVertically) {
+							Text(text = "Monero Watchman  ",style = TextStyle(fontSize = 24.sp))
+							Image(
+    						    painter = painterResource(id = R.drawable.ic_launcher_playstore), // Reference your image here
+    						    contentDescription = "App Icon",
+								modifier = Modifier.size(40.dp)
+    						)
+						}
+
+						// Reorg Checker Settings
+						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
+						Text("Reorg Checker Settings:",modifier = ns_modifier)
+
                     	OutlinedTextField(
                     	    value = node_url,
                     	    onValueChange = { node_url = it },
                     	    singleLine = true,
-                    	    modifier = Modifier.fillMaxWidth(),
+                    	    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp),
                     	    label = { Text("Node URL") }
                     	)
 						
-						var reorgText by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1).toString())}
+						var reorg_threshold_text by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1).toString())}
 						
 						OutlinedTextField(
-						    value = reorgText,
-						    onValueChange = { reorgText = it },
+						    value = reorg_threshold_text,
+						    onValueChange = { reorg_threshold_text = it },
 						    label = { Text("Reorg Threshold") },
 						    singleLine = true,
-						    modifier = Modifier.width(200.dp),
+						    modifier = Modifier.width(200.dp).padding(start = 8.dp),
 						    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
 						)
 						
 						// Convert to int because we can only get strings
-						reorg_threshold = reorgText.toIntOrNull() ?: 1
+						reorg_threshold = reorg_threshold_text.toIntOrNull() ?: 1
 
-					    Button(onClick = {
-							user_prefs.edit().putString("node_url", "$default_node_url").apply()
-							user_prefs.edit().putInt("reorg_threshold", default_reorg_threshold).apply()
-							node_url = default_node_url
-							reorgText = default_reorg_threshold.toString()
-						}) {Text("Default Values")}
+						if (reorg_threshold > 50) {
+							reorg_threshold = 50
+							reorg_threshold_text = "50"
+						}
+					    
+						// Proxy Section
+						Row(modifier = ns_modifier,verticalAlignment = Alignment.CenterVertically) {
+							Switch(checked = use_proxy,onCheckedChange = { use_proxy = it }) 
+							Text(text = if (use_proxy) "Proxy ON" else "Proxy OFF", modifier = Modifier.padding(start = 16.dp))
+						}
 
-					    Button(onClick = {
-						
-							startReorgCheckService("$node_url",reorg_threshold,reorg_check_interval,use_proxy)
-							user_prefs.edit().putString("node_url", "$node_url").apply()
-							user_prefs.edit().putInt("reorg_threshold", reorg_threshold).apply()
+						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
+				        
+						// Button Section
+						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+					    	Button(onClick = {
 
-						}) {Text("Run")}
-					
-						Switch(checked = use_proxy,onCheckedChange = { use_proxy = it })
-				        Text(text = if (use_proxy) "Proxy ON" else "Proxy OFF")
+								user_prefs.edit().putString("node_url", "$default_node_url").apply()
+								user_prefs.edit().putInt("reorg_threshold", default_reorg_threshold).apply()
+								node_url = default_node_url
+								reorg_threshold_text = default_reorg_threshold.toString()
+								use_proxy = false
 
-						Text("Until further updates, after pressing run wait for the notification to pop up to confirm service is running.")
-					
+							}) {Text("Default Values")}
+
+					    	Button(onClick = {
+							
+								startReorgCheckService("$node_url",reorg_threshold,reorg_check_interval,use_proxy)
+								user_prefs.edit().putString("node_url", "$node_url").apply()
+								user_prefs.edit().putInt("reorg_threshold", reorg_threshold).apply()
+
+							},modifier = Modifier.padding(start = 16.dp) ) {Text("Launch")}
+								
+						}
+
+						// Service Satistics:
+						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
+
+						Text("Service Satistics:",modifier = ns_modifier)
+						Text("temp",modifier = ns_modifier)
+
+						// Other
+						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
+
 					}
 				}
 			}
