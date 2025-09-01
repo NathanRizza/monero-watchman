@@ -56,11 +56,15 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.monerowatchman.ui.theme.MoneroWatchmanTheme
+import androidx.compose.ui.graphics.Color
 
 class MainActivity : ComponentActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 	    super.onCreate(savedInstanceState)
+		
+		// Dark mode navigation bar
+		window.navigationBarColor = android.graphics.Color.BLACK
 		
 		// Requests notification permissions
 	    ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
