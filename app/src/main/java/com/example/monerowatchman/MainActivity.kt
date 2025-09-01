@@ -47,7 +47,6 @@ import android.os.Build;
 import android.provider.Settings;
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.HorizontalDivider
-//for fonts
 import androidx.compose.ui.text.TextStyle 
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -79,6 +78,7 @@ class MainActivity : ComponentActivity() {
 						val ns_modifier =  Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp)
 
 						val default_node_url = "https://moneronode.org:18081"
+						val default_proxy_url = "127.0.0.1:9050"
 						val default_reorg_threshold = 1
 						val default_reorg_check_interval = 1
 						val user_prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -86,6 +86,7 @@ class MainActivity : ComponentActivity() {
 						var node_url by remember {mutableStateOf(user_prefs.getString("node_url", default_node_url) ?: default_node_url)}
         				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1))}
 						var reorg_check_interval = default_reorg_check_interval 
+						var proxy_url by remember {mutableStateOf(user_prefs.getString("proxy_url", default_proxy_url) ?: default_proxy_url)}
 						var use_proxy by remember { mutableStateOf(false) } 
 
 
@@ -108,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     	    onValueChange = { node_url = it },
                     	    singleLine = true,
                     	    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp),
-                    	    label = { Text("Node URL") }
+                    	    label = { Text("Node Address") }
                     	)
 						
 						var reorg_threshold_text by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1).toString())}
@@ -130,6 +131,14 @@ class MainActivity : ComponentActivity() {
 							reorg_threshold_text = "50"
 						}
 					    
+                    	OutlinedTextField(
+                    	    value = proxy_url,
+                    	    onValueChange = { proxy_url = it },
+                    	    singleLine = true,
+                    	    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp),
+                    	    label = { Text("Proxy Address") }
+                    	)
+
 						// Proxy Section
 						Row(modifier = ns_modifier,verticalAlignment = Alignment.CenterVertically) {
 							Switch(checked = use_proxy,onCheckedChange = { use_proxy = it }) 
@@ -144,17 +153,20 @@ class MainActivity : ComponentActivity() {
 
 								user_prefs.edit().putString("node_url", "$default_node_url").apply()
 								user_prefs.edit().putInt("reorg_threshold", default_reorg_threshold).apply()
+								user_prefs.edit().putString("proxy_url", "$default_proxy_url").apply()
 								node_url = default_node_url
 								reorg_threshold_text = default_reorg_threshold.toString()
+								proxy_url = default_proxy_url
 								use_proxy = false
 
 							}) {Text("Default Values")}
 
 					    	Button(onClick = {
 							
-								startReorgCheckService("$node_url",reorg_threshold,reorg_check_interval,use_proxy)
+								startReorgCheckService(node_url, proxy_url, reorg_threshold, reorg_check_interval, use_proxy)
 								user_prefs.edit().putString("node_url", "$node_url").apply()
 								user_prefs.edit().putInt("reorg_threshold", reorg_threshold).apply()
+								user_prefs.edit().putString("proxy_url", "$proxy_url").apply()
 
 							},modifier = Modifier.padding(start = 16.dp) ) {Text("Launch")}
 								
@@ -175,13 +187,14 @@ class MainActivity : ComponentActivity() {
 		}
 	}
 
-	private fun startReorgCheckService(node_url: String, reorg_threshold: Int, reorg_check_interval: Int, use_proxy: Boolean) {
+	private fun startReorgCheckService(node_url: String, proxy_url: String, reorg_threshold: Int, reorg_check_interval: Int, use_proxy: Boolean) {
 
 	    val intent = Intent(this, ReorgCheckService::class.java)
 
 	    intent.putExtra("node_url", node_url)
 	    intent.putExtra("reorg_threshold", reorg_threshold)
 	    intent.putExtra("use_proxy", use_proxy)
+	    intent.putExtra("proxy_url", proxy_url)
 
 	    ContextCompat.startForegroundService(this, intent)
 	}

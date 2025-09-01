@@ -59,7 +59,9 @@ class ReorgCheckService : Service() {
 
 			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
+			val proxy_url = intent?.getStringExtra("proxy_url") ?: "127.0.0.1:9050"
 			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
+
 			val block_window = reorg_threshold + 10
     		var reorg_message: String? = null
         	val reorg_check_interval = 1
@@ -68,7 +70,7 @@ class ReorgCheckService : Service() {
 			var reorg_check_height = -1
 
 			// TODO replace with some other way to communitcate that you're not connected to the server 
-			var get_info_json = sendMoneroRpcRequest(use_proxy,node_url,"get_info")
+			var get_info_json = sendMoneroRpcRequest(use_proxy,proxy_url,node_url,"get_info")
 			val server_status = getJsonValue(get_info_json ?: "fail", "result.status")
 
 			if ( server_status != "OK" ) {
@@ -84,14 +86,13 @@ class ReorgCheckService : Service() {
 
 				reorg_check_height = next_reorg_check_height
 				
-				//TODO add some additonal checks like if the old data has values in it
 				if (reorg_check_height != -1 && baseline_block_data.isNotEmpty()){
 
 					val reorg_check_end_block_height = reorg_check_height - 1 
 					val reorg_check_start_block_height = reorg_check_height - block_window
 
 					val comparison_get_block_headers_range_params = """{"start_height": $reorg_check_start_block_height, "end_height": $reorg_check_end_block_height}"""
-					val comparison_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,node_url,"get_block_headers_range",comparison_get_block_headers_range_params)
+					val comparison_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,proxy_url,node_url,"get_block_headers_range",comparison_get_block_headers_range_params)
 					comparison_block_data = parseBlockHeaders("$comparison_get_block_headers_range_json")
 
 	                Log.d("ReorgCheckService", "node_url : $node_url")
@@ -102,23 +103,27 @@ class ReorgCheckService : Service() {
 	                Log.d("ReorgCheckService", "comparison_block_data: $comparison_block_data")
 
 					if(comparison_block_data.isNotEmpty()) {
-						//Check for a reorg
+
+						// Check for a reorg
 						val reorg_message = checkForReorg(reorg_threshold,baseline_block_data,comparison_block_data)
+
 						if (reorg_message != null) {
 							Log.d("ReorgCheckService", "$reorg_message")
 			      			sendNotification(notification_channel_id,"$reorg_message",1002)
 						} else {
 							Log.d("ReorgCheckService", "No reorg detected")
 						}
+
 					} else {
 							Log.d("ReorgCheckService", "Grabbing comparison_block_data_failed")
 					}
+
 				} else {
 							Log.d("ReorgCheckService", "baseline_block_data is empty")
 				}
 
-				
-				val get_info_json = sendMoneroRpcRequest(use_proxy,node_url,"get_info")
+				// Get block data for next loop	
+				val get_info_json = sendMoneroRpcRequest(use_proxy,proxy_url,node_url,"get_info")
 
 				if (getJsonValue(get_info_json ?: "", "result.status") == "OK") {
 
@@ -129,7 +134,7 @@ class ReorgCheckService : Service() {
 						val next_reorg_check_start_block_height = next_reorg_check_height - block_window
 						
 						val baseline_get_block_headers_range_params = """{"start_height": $next_reorg_check_start_block_height, "end_height": $next_reorg_check_end_block_height}"""
-						val baseline_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,node_url,"get_block_headers_range",baseline_get_block_headers_range_params)
+						val baseline_get_block_headers_range_json = sendMoneroRpcRequest(use_proxy,proxy_url,node_url,"get_block_headers_range",baseline_get_block_headers_range_params)
 						
 						baseline_block_data = parseBlockHeaders("$baseline_get_block_headers_range_json")
 	            		Log.d("ReorgCheckService", "Retrieved baseline_block_data for next loop")

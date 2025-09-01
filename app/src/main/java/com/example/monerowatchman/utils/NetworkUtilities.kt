@@ -28,7 +28,7 @@ import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 
-fun sendMoneroRpcRequest(use_proxy: Boolean, node_url: String, method: String, json_params: String = "{}"): String? {
+fun sendMoneroRpcRequest(use_proxy: Boolean, proxy_url: String, node_url: String, method: String, json_params: String = "{}"): String? {
 
     val node_url_json_rpc = "$node_url/json_rpc"
     var response: String? = null
@@ -45,17 +45,13 @@ fun sendMoneroRpcRequest(use_proxy: Boolean, node_url: String, method: String, j
 
 	try {
 		if (use_proxy) {
-			val proxy = "127.0.0.1:9050"
-    	    //val proxy_uri = URI(proxy)
-    	    //val proxy_host = proxy_uri.host
-    	    //val proxy_port = proxy_uri.port
-    	    val proxy_host = "127.0.0.1"
-    	    val proxy_port = 9050
-			
+			val proxy_parts = proxy_url.split(":")
+			val proxy_host = proxy_parts[0]
+			val proxy_port = proxy_parts.getOrNull(1)?.toInt() ?: 9050 
+
         	val proxy_connection = Proxy(Proxy.Type.SOCKS, InetSocketAddress(proxy_host, proxy_port))
 
         	client = OkHttpClient.Builder().proxy(proxy_connection).build()
-
 
 		} else {
 			client = OkHttpClient.Builder().connectTimeout(3,TimeUnit.SECONDS).build()
