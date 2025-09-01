@@ -33,6 +33,8 @@ import kotlinx.coroutines.*
 
 class ReorgCheckService : Service() {
 
+//	private val binder = MyBinder()
+
     private val service_channel_id = "ReorgCheckServiceChannel"
     private val service_channel_name = "Foreground Service Notification"
     private val notification_channel_id = "ReorgCheckNotificationChannel"
@@ -58,7 +60,7 @@ class ReorgCheckService : Service() {
         job = CoroutineScope(Dispatchers.IO).launch {
 
 			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
-        	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 5) ?: 5
+        	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 4) ?: 4
 			val proxy_url = intent?.getStringExtra("proxy_url") ?: "127.0.0.1:9050"
 			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
 
@@ -138,6 +140,7 @@ class ReorgCheckService : Service() {
 						
 						baseline_block_data = parseBlockHeaders("$baseline_get_block_headers_range_json")
 	            		Log.d("ReorgCheckService", "Retrieved baseline_block_data for next loop")
+
 					}else {
 	                	Log.d("ReorgCheckService", "Failed to get valid block height from server")
 					}

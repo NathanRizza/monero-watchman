@@ -24,35 +24,38 @@ import com.example.monerowatchman.*
 
 // Dependencies 
 import android.content.Intent
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle
+import android.provider.Settings;
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle 
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.monerowatchman.ui.theme.MoneroWatchmanTheme
-import androidx.compose.material3.Switch
-import android.net.Uri;
-import android.os.Build;
-import android.provider.Settings;
-import androidx.compose.ui.Alignment
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.text.TextStyle 
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 
 class MainActivity : ComponentActivity() {
 
@@ -77,19 +80,25 @@ class MainActivity : ComponentActivity() {
 						val ew_modifier =  Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp)
 						val ns_modifier =  Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp)
 
+						val	about_text = "This app is designed to alert you when a reorganization occurs on the Monero node you are connected to. \n\n If you find any issues, want to recommended an additional feature or check the source code you can tap “Github Link”. \n\n If you want to help support the project you can send Monero to the “Moreno Donation Address”. \n\n Thank you for using my app!"
+						val github_url = "https://github.com/NathanRizza/monero-watchman"
+						val monero_donation_address = "86rBr8eqGFbLNgR9VTm6XbdPBFc5hGqMrGjQh1Pv8UVuQRd5oTMRYZHUdQqpJDRRukc3R2EcTWTHq1cjVGiLdSm9EdtVFTu"
+
 						val default_node_url = "https://moneronode.org:18081"
 						val default_proxy_url = "127.0.0.1:9050"
-						val default_reorg_threshold = 1
+						val default_reorg_threshold = 4
 						val default_reorg_check_interval = 1
 						val user_prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
 						
 						var node_url by remember {mutableStateOf(user_prefs.getString("node_url", default_node_url) ?: default_node_url)}
-        				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1))}
+        				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 4))}
 						var reorg_check_interval = default_reorg_check_interval 
 						var proxy_url by remember {mutableStateOf(user_prefs.getString("proxy_url", default_proxy_url) ?: default_proxy_url)}
 						var use_proxy by remember { mutableStateOf(false) } 
 
-
+						var send_launch_alert by remember { mutableStateOf(false) } 
+						val alert_text = "Launched Monero Reorg Checker Service"
+						
 						// Title Section
 						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center,verticalAlignment = Alignment.CenterVertically) {
 							Text(text = "Monero Watchman  ",style = TextStyle(fontSize = 24.sp))
@@ -167,20 +176,35 @@ class MainActivity : ComponentActivity() {
 								user_prefs.edit().putString("node_url", "$node_url").apply()
 								user_prefs.edit().putInt("reorg_threshold", reorg_threshold).apply()
 								user_prefs.edit().putString("proxy_url", "$proxy_url").apply()
+								send_launch_alert = true 
 
 							},modifier = Modifier.padding(start = 16.dp) ) {Text("Launch")}
-								
+
 						}
 
-						// Service Satistics:
+						// About / Other Section 
 						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
 
-						Text("Service Satistics:",modifier = ns_modifier)
-						Text("temp",modifier = ns_modifier)
+						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+							textAlertDialogBox("About", about_text)
+						}
+						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+							textAlertDialogBox("Github Link", github_url)
+						}
+						Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+							textAlertDialogBox("Monero Donation Address", monero_donation_address)
+						}
 
-						// Other
 						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
-
+                    	
+						// Launch Alert
+    					if (send_launch_alert) {
+    					    AlertDialog(
+    					        onDismissRequest = { send_launch_alert = false },
+    					        confirmButton = { TextButton(onClick = { send_launch_alert = false }) {Text("OK")}},
+    					        text = {Column {Text(alert_text)}}
+    					    )
+    					}
 					}
 				}
 			}
@@ -198,5 +222,35 @@ class MainActivity : ComponentActivity() {
 
 	    ContextCompat.startForegroundService(this, intent)
 	}
+
 }
 
+@Composable
+fun textAlertDialogBox(box_text: String, alert_text: String) {
+
+	var show_alert_dialog by remember { mutableStateOf(false) }
+	
+	Text(
+	    text = box_text,
+	    modifier = Modifier
+	        .clickable { show_alert_dialog = true }
+	        .padding(16.dp)
+	)
+	
+	if (show_alert_dialog) {
+	    AlertDialog(
+	        onDismissRequest = { show_alert_dialog = false },
+	        text = {
+	            Column {
+	                OutlinedTextField(
+	                    value = alert_text,
+	                    onValueChange = {},
+	                    modifier = Modifier.fillMaxWidth(),
+	                    readOnly = true
+	                )
+	            }
+	        },
+	        confirmButton = {TextButton(onClick = { show_alert_dialog = false }) {Text("Close")}}
+	    )
+	}
+}
