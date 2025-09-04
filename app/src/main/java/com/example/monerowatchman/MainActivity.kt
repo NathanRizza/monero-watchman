@@ -90,6 +90,7 @@ class MainActivity : ComponentActivity() {
 
 						val default_node_url = "https://moneronode.org:18081"
 						val default_proxy_url = "127.0.0.1:9050"
+						val default_use_proxy = false
 						val default_reorg_threshold = 4
 						val default_reorg_check_interval = 1
 						val user_prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
@@ -98,7 +99,7 @@ class MainActivity : ComponentActivity() {
         				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 4))}
 						var reorg_check_interval = default_reorg_check_interval 
 						var proxy_url by remember {mutableStateOf(user_prefs.getString("proxy_url", default_proxy_url) ?: default_proxy_url)}
-						var use_proxy by remember { mutableStateOf(false) } 
+						var use_proxy by remember {mutableStateOf(user_prefs.getBoolean("use_proxy", default_use_proxy) ?: default_use_proxy)} 
 
 						var send_launch_alert by remember { mutableStateOf(false) } 
 						val alert_text = "Launched Monero Reorg Checker Service"
@@ -167,10 +168,13 @@ class MainActivity : ComponentActivity() {
 								user_prefs.edit().putString("node_url", "$default_node_url").apply()
 								user_prefs.edit().putInt("reorg_threshold", default_reorg_threshold).apply()
 								user_prefs.edit().putString("proxy_url", "$default_proxy_url").apply()
+								user_prefs.edit().putBoolean("use_proxy", default_use_proxy).apply()
+
 								node_url = default_node_url
 								reorg_threshold_text = default_reorg_threshold.toString()
+								reorg_threshold = default_reorg_threshold
 								proxy_url = default_proxy_url
-								use_proxy = false
+								use_proxy = default_use_proxy
 
 							}) {Text("Default Values")}
 
@@ -180,9 +184,10 @@ class MainActivity : ComponentActivity() {
 								user_prefs.edit().putString("node_url", "$node_url").apply()
 								user_prefs.edit().putInt("reorg_threshold", reorg_threshold).apply()
 								user_prefs.edit().putString("proxy_url", "$proxy_url").apply()
+								user_prefs.edit().putBoolean("use_proxy", use_proxy).apply()
 								send_launch_alert = true 
 
-							},modifier = Modifier.padding(start = 16.dp) ) {Text("Launch")}
+							},modifier = Modifier.padding(start = 16.dp)) {Text("Launch")}
 
 						}
 
