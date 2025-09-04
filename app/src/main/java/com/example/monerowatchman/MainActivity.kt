@@ -219,6 +219,8 @@ class MainActivity : ComponentActivity() {
 
 	    val intent = Intent(this, ReorgCheckService::class.java)
 
+    	stopService(intent)
+
 	    intent.putExtra("node_url", node_url)
 	    intent.putExtra("reorg_threshold", reorg_threshold)
 	    intent.putExtra("use_proxy", use_proxy)
