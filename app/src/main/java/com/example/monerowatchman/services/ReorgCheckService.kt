@@ -80,7 +80,8 @@ class ReorgCheckService : Service() {
         		sendNotification(notification_channel_id,"Failed to connect to server",1001)
 				stopForeground(STOP_FOREGROUND_REMOVE)
 				stopSelf()
-			} 
+				return@launch
+			}
             
 			while (isActive) {
 
@@ -162,10 +163,13 @@ class ReorgCheckService : Service() {
 		var has_reorg = false
 		var reorg_length = 0
 		var fork_point = -1
-			
-		var	total_indices = baseline_block_data.indices
 
-		for (i in total_indices) {
+		// Only compare indices present in BOTH lists. A node can return a
+		// partial/short response, so comparison_block_data may be shorter than
+		// baseline_block_data; indexing past its end would crash the monitor loop.
+		val comparable_count = minOf(baseline_block_data.size, comparison_block_data.size)
+
+		for (i in 0 until comparable_count) {
         	if (baseline_block_data[i].hash != comparison_block_data[i].hash) {
 				if (!has_reorg) {	
 					fork_point = baseline_block_data[i].height
