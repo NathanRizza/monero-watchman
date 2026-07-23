@@ -41,7 +41,7 @@ class BootReceiver : BroadcastReceiver() {
 
         val service_intent = Intent(context, ReorgCheckService::class.java).apply {
             putExtra("node_url", prefs.getString("node_url", "https://xmrnode.shork.ch"))
-            putExtra("reorg_threshold", prefs.getInt("reorg_threshold", 4))
+            putExtra("reorg_threshold", prefs.getInt("reorg_threshold", 3))
             putExtra("use_proxy", prefs.getBoolean("use_proxy", false))
             putExtra("proxy_url", prefs.getString("proxy_url", "127.0.0.1:9050"))
         }

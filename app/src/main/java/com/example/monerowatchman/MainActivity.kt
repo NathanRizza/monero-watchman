@@ -91,13 +91,13 @@ class MainActivity : ComponentActivity() {
 						val default_node_url = "https://xmrnode.shork.ch"
 						val default_proxy_url = "127.0.0.1:9050"
 						val default_use_proxy = false
-						val default_reorg_threshold = 4
+						val default_reorg_threshold = 3
 						val default_reorg_check_interval = 1
 						val default_start_on_boot = false
 						val user_prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
 
 						var node_url by remember {mutableStateOf(user_prefs.getString("node_url", default_node_url) ?: default_node_url)}
-        				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 4))}
+        				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 3))}
 						var reorg_check_interval = default_reorg_check_interval
 						var proxy_url by remember {mutableStateOf(user_prefs.getString("proxy_url", default_proxy_url) ?: default_proxy_url)}
 						var use_proxy by remember {mutableStateOf(user_prefs.getBoolean("use_proxy", default_use_proxy) ?: default_use_proxy)}
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                     	    label = { Text("Node Address") }
                     	)
 						
-						var reorg_threshold_text by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 1).toString())}
+						var reorg_threshold_text by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 3).toString())}
 						
 						OutlinedTextField(
 						    value = reorg_threshold_text,
@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
 						)
 						
 						// Convert to int because we can only get strings
-						reorg_threshold = reorg_threshold_text.toIntOrNull() ?: 1
+						reorg_threshold = reorg_threshold_text.toIntOrNull() ?: 3
 
 						if (reorg_threshold > 50) {
 							reorg_threshold = 50
