@@ -88,18 +88,21 @@ class MainActivity : ComponentActivity() {
 						val github_url = "https://github.com/NathanRizza/monero-watchman"
 						val monero_donation_address = "86rBr8eqGFbLNgR9VTm6XbdPBFc5hGqMrGjQh1Pv8UVuQRd5oTMRYZHUdQqpJDRRukc3R2EcTWTHq1cjVGiLdSm9EdtVFTu"
 
-						val default_node_url = "https://moneronode.org:18081"
+						val default_node_url = "https://xmrnode.shork.ch"
 						val default_proxy_url = "127.0.0.1:9050"
 						val default_use_proxy = false
 						val default_reorg_threshold = 4
 						val default_reorg_check_interval = 1
+						val default_start_on_boot = false
 						val user_prefs = getSharedPreferences("user_prefs", MODE_PRIVATE)
-						
+
 						var node_url by remember {mutableStateOf(user_prefs.getString("node_url", default_node_url) ?: default_node_url)}
         				var reorg_threshold by remember {mutableStateOf(user_prefs.getInt("reorg_threshold", 4))}
-						var reorg_check_interval = default_reorg_check_interval 
+						var reorg_check_interval = default_reorg_check_interval
 						var proxy_url by remember {mutableStateOf(user_prefs.getString("proxy_url", default_proxy_url) ?: default_proxy_url)}
-						var use_proxy by remember {mutableStateOf(user_prefs.getBoolean("use_proxy", default_use_proxy) ?: default_use_proxy)} 
+						var use_proxy by remember {mutableStateOf(user_prefs.getBoolean("use_proxy", default_use_proxy) ?: default_use_proxy)}
+						var start_on_boot by remember {mutableStateOf(user_prefs.getBoolean("start_on_boot", default_start_on_boot))}
+						var show_boot_permission_dialog by remember {mutableStateOf(!user_prefs.getBoolean("boot_prompt_shown", false))}
 
 						var send_launch_alert by remember { mutableStateOf(false) } 
 						val alert_text = "Launched Monero Reorg Checker Service"
@@ -155,8 +158,17 @@ class MainActivity : ComponentActivity() {
 
 						// Proxy Section
 						Row(modifier = ns_modifier,verticalAlignment = Alignment.CenterVertically) {
-							Switch(checked = use_proxy,onCheckedChange = { use_proxy = it }) 
+							Switch(checked = use_proxy,onCheckedChange = { use_proxy = it })
 							Text(text = if (use_proxy) "Proxy ON" else "Proxy OFF", modifier = Modifier.padding(start = 16.dp))
+						}
+
+						// Start on Boot Section
+						Row(modifier = ns_modifier,verticalAlignment = Alignment.CenterVertically) {
+							Switch(checked = start_on_boot,onCheckedChange = {
+								start_on_boot = it
+								user_prefs.edit().putBoolean("start_on_boot", it).apply()
+							})
+							Text(text = if (start_on_boot) "Start on Boot ON" else "Start on Boot OFF", modifier = Modifier.padding(start = 16.dp))
 						}
 
 						HorizontalDivider(modifier = ew_modifier,thickness = 2.dp)
@@ -214,6 +226,30 @@ class MainActivity : ComponentActivity() {
     					        text = {Column {Text(alert_text)}}
     					    )
     					}
+
+						// Start on Boot Prompt
+						if (show_boot_permission_dialog) {
+							AlertDialog(
+								onDismissRequest = {
+									user_prefs.edit().putBoolean("boot_prompt_shown", true).apply()
+									show_boot_permission_dialog = false
+								},
+								title = { Text("Start on Boot") },
+								text = {Column {Text("Allow Monero Watchman to start monitoring automatically when your device restarts?")}},
+								confirmButton = { TextButton(onClick = {
+									start_on_boot = true
+									user_prefs.edit().putBoolean("start_on_boot", true).apply()
+									user_prefs.edit().putBoolean("boot_prompt_shown", true).apply()
+									show_boot_permission_dialog = false
+								}) {Text("Allow")}},
+								dismissButton = { TextButton(onClick = {
+									start_on_boot = false
+									user_prefs.edit().putBoolean("start_on_boot", false).apply()
+									user_prefs.edit().putBoolean("boot_prompt_shown", true).apply()
+									show_boot_permission_dialog = false
+								}) {Text("Deny")}}
+							)
+						}
 					}
 				}
 			}

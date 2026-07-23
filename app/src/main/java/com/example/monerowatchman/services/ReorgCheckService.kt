@@ -59,7 +59,7 @@ class ReorgCheckService : Service() {
         job?.cancel()
         job = CoroutineScope(Dispatchers.IO).launch {
 
-			val node_url = intent?.getStringExtra("node_url") ?: "https://moneronode.org:18081"
+			val node_url = intent?.getStringExtra("node_url") ?: "https://xmrnode.shork.ch"
         	val reorg_threshold = intent?.getIntExtra("reorg_threshold", 4) ?: 4
 			val proxy_url = intent?.getStringExtra("proxy_url") ?: "127.0.0.1:9050"
 			val use_proxy = intent?.getBooleanExtra("use_proxy",false) ?: false
